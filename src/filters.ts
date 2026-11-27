@@ -105,7 +105,10 @@ export function minSumFilters(
   return choice;
 }
 
-/** All candidate row-filter assignments: 5 fixed + MinSum. */
+/** Candidate row-filter assignments: fixed None, fixed Up, and MinSum.
+ * Fixed Sub/Average/Paeth never won the level-6 ranking on the practice
+ * set (the per-row brute search dominates them: it can pick any filter per
+ * row), so they are not tried — each costs a full proxy deflate. */
 export function candidateFilters(
   data: Uint8Array,
   width: number,
@@ -113,7 +116,7 @@ export function candidateFilters(
   bpp: number,
 ): Uint8Array[] {
   const cands: Uint8Array[] = [];
-  for (let f = 0; f < 5; f++) cands.push(new Uint8Array(height).fill(f));
+  for (const f of [0, 2]) cands.push(new Uint8Array(height).fill(f));
   cands.push(minSumFilters(data, width, height, bpp));
   return cands;
 }

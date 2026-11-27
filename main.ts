@@ -11,7 +11,7 @@ import { encodePng } from './src/pngEncode.ts';
 import { reduceColors } from './src/colorReduce.ts';
 import type { PaletteOrder, Reduced } from './src/colorReduce.ts';
 import { bruteFilters, candidateFilters, filterImage } from './src/filters.ts';
-import { bestDeflate, proxySize } from './src/compress.ts';
+import { bestDeflate, proxySize, proxySizeFast } from './src/compress.ts';
 import { deflateOptimal } from './src/deflate.ts';
 
 const INPUT_DIR = process.env.MAKEFUN_INPUT_DIR ?? '/input';
@@ -23,12 +23,12 @@ function pixelsEqual(a: Uint8Array, b: Uint8Array): boolean {
   return true;
 }
 
-/** Best filtered image for one reduced image: 5 fixed + MinSum + brute
- * per-row search, ranked by the level-6 proxy. */
+/** Best filtered image for one reduced image: fixed None/Up + MinSum +
+ * brute per-row search (level-2 proxy), ranked by the level-6 proxy. */
 function bestFiltered(reduced: Reduced): Uint8Array {
   const { data, width, height, bpp } = reduced;
   const cands = candidateFilters(data, width, height, bpp);
-  cands.push(bruteFilters(data, width, height, bpp, proxySize));
+  cands.push(bruteFilters(data, width, height, bpp, proxySizeFast));
   let best: Uint8Array | null = null;
   let bestProxy = Infinity;
   for (const rowFilters of cands) {
@@ -88,9 +88,9 @@ function compressOne(inputPath: string): Uint8Array {
       chainLimit: large ? 1024 : 4096,
       goodLength: 128,
       niceLength: 258,
-      iterations: large ? 1 : 2,
-      blockTokens: 100000,
-      cacheChainLimit: large ? 256 : 768,
+      iterations: large ? 2 : 2,
+      blockTokens: 5000,
+      cacheChainLimit: large ? 192 : 384,
     });
     if (custom.length < bestIdat.length) bestIdat = custom;
   }

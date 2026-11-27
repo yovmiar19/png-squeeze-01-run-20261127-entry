@@ -212,7 +212,11 @@ export interface Lz77 {
 }
 
 function hash3(data: Uint8Array, pos: number): number {
-  return ((data[pos] << 10) ^ (data[pos + 1] << 5) ^ data[pos + 2]) & 0x7fff;
+  // 17-bit Fibonacci hash of the 3 bytes: identical triples always share a
+  // bucket, different triples collide far less than with the old 15-bit
+  // table, so the chain walk wastes less budget on false candidates.
+  const v = (data[pos] << 16) | (data[pos + 1] << 8) | data[pos + 2];
+  return Math.imul(v, 2654435761) >>> 15;
 }
 
 export interface ParseOptions {
@@ -230,7 +234,7 @@ export function lz77Parse(data: Uint8Array, opts: ParseOptions): Lz77 {
   const sym = new Int32Array(n);
   const dist = new Int32Array(n);
   let count = 0;
-  const HASH_SIZE = 32768;
+  const HASH_SIZE = 131072;
   const head = new Int32Array(HASH_SIZE);
   head.fill(-1);
   const prev = new Int32Array(n);
@@ -413,7 +417,7 @@ export function buildMatchCache(
   const n = data.length;
   const lenArr = new Int32Array(n);
   const distArr = new Int32Array(n);
-  const HASH_SIZE = 32768;
+  const HASH_SIZE = 131072;
   const head = new Int32Array(HASH_SIZE);
   head.fill(-1);
   const prev = new Int32Array(n);
